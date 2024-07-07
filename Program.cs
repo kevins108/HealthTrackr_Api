@@ -30,7 +30,6 @@ builder.Services.AddScoped<LoginAccess>();
 builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<AccessRepository>();
 
-
 // Database
 //builder.Services.AddDbContext<DataContext>(opt => opt.UseSqlServer(builder.Configuration.GetConnectionString("LOCAL_DB_KEVINS")));
 
