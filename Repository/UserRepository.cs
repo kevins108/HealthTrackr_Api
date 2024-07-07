@@ -6,7 +6,7 @@ using Microsoft.FeatureManagement;
 
 namespace HealthTrackr_Api.Repository
 {
-	public class UserRepository
+    public class UserRepository
 	{
 		private readonly DataContext context;
 		public ApplicationSettings settings { get; }

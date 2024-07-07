@@ -23,6 +23,7 @@ namespace HealthTrackr_Api.Controllers
 		{
 			try
 			{
+				var access = Request.Headers["Authorization"];
 				var result = await _userRepository.GetUserInformation();
 				return Ok(result);
 			}

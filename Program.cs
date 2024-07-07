@@ -1,5 +1,4 @@
 using HealthTrackr_Api.Data;
-using HealthTrackr_Api.Models;
 using HealthTrackr_Api.Repository;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.FeatureManagement;
@@ -27,10 +26,15 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Repositories
+builder.Services.AddScoped<LoginAccess>();
 builder.Services.AddScoped<UserRepository>();
+builder.Services.AddScoped<AccessRepository>();
+
 
 // Database
-builder.Services.AddDbContext<DataContext>(opt => opt.UseSqlServer(builder.Configuration.GetConnectionString("LOCAL_DB_KEVINS")));
+//builder.Services.AddDbContext<DataContext>(opt => opt.UseSqlServer(builder.Configuration.GetConnectionString("LOCAL_DB_KEVINS")));
+
+builder.Services.AddDbContext<DataContext>(opt => opt.UseSqlServer(builder.Configuration.GetConnectionString("LOCAL_DB_CONNECTION")));
 
 // Bind configuration AppSettings section to the Settings object
 builder.Services.Configure<ApplicationSettings>(builder.Configuration.GetSection("ApplicationSettings"));
