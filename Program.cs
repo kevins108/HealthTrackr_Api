@@ -1,5 +1,6 @@
 using HealthTrackr_Api.Data;
 using HealthTrackr_Api.Repository;
+using HealthTrackr_Api.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.FeatureManagement;
 
@@ -7,17 +8,22 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHttpClient();
 
+// TODO: CLEAN UP THE MODELS
+// MIGRATION COMMANDS
+// dotnet ef migrations add Initial
+// dotnet ef database update
+
 // Add services to the container.
 builder.Configuration.AddAzureAppConfiguration(options =>
 {
-	options.Connect(builder.Configuration["AZURE_APP_CONFIGURATION"])
-		   .Select("*")
-		   .ConfigureRefresh(refresh =>
-		   {
-			   refresh.Register("~REFRESH_ALL", refreshAll: true)
-					  .SetCacheExpiration(TimeSpan.FromSeconds(30));
-		   })
-		   .UseFeatureFlags(flags => flags.CacheExpirationInterval = TimeSpan.FromSeconds(30));
+    options.Connect(builder.Configuration["AZURE_APP_CONFIGURATION"])
+           .Select("*")
+           .ConfigureRefresh(refresh =>
+           {
+               refresh.Register("~REFRESH_ALL", refreshAll: true)
+                      .SetCacheExpiration(TimeSpan.FromSeconds(30));
+           })
+           .UseFeatureFlags(flags => flags.CacheExpirationInterval = TimeSpan.FromSeconds(30));
 });
 
 builder.Services.AddControllers();
@@ -30,10 +36,16 @@ builder.Services.AddScoped<LoginAccess>();
 builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<AccessRepository>();
 
-// Database
-//builder.Services.AddDbContext<DataContext>(opt => opt.UseSqlServer(builder.Configuration.GetConnectionString("LOCAL_DB_KEVINS")));
+// Services
+builder.Services.AddScoped<UserServices>();
 
-builder.Services.AddDbContext<DataContext>(opt => opt.UseSqlServer(builder.Configuration.GetConnectionString("LOCAL_DB_CONNECTION")));
+// Database
+builder.Services.AddDbContextFactory<DataContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DB_KEVINS")));
+//builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseInMemoryDatabase("AppDb"));
+builder.Services.AddAuthorization();
+
+// Add Identity
+//builder.Services.AddIdentityApiEndpoints<IdentityUser>().AddEntityFrameworkStores<ApplicationDbContext>();
 
 // Bind configuration AppSettings section to the Settings object
 builder.Services.Configure<ApplicationSettings>(builder.Configuration.GetSection("ApplicationSettings"));
@@ -49,12 +61,14 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-	app.UseSwagger();
-	app.UseSwaggerUI();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 // Use Azure App Configuration middleware for dynamic configuration refresh.
 app.UseAzureAppConfiguration();
+
+//app.MapIdentityApi<IdentityUser>();
 
 app.UseHttpsRedirection();
 

@@ -1,9 +1,9 @@
 ﻿namespace HealthTrackr_Api.Models
 {
-	public class LoginModel
-	{
-		public string? login { get; set; }
-		public string? password { get; set; }
-		public string? current_date { get; set; }
-	}
+    public class LoginModel
+    {
+        public string? Login { get; set; }
+        public string? Password { get; set; }
+        public string? Current_Date { get; set; }
+    }
 }

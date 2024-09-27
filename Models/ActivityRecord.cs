@@ -6,7 +6,7 @@ namespace HealthTrackr_Api.Models
 	{
 		[Key]
 		public int ActivityRecordId { get; set; }
-		public Users? UserId { get; set; }
+		//public Users? UserId { get; set; }
 		public ActivityType? ActivityTypeId { get; set; }
 		public DateTime ActivityDate { get; set; }
 		public int? DurationMinutes { get; set; }

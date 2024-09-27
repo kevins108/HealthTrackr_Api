@@ -17,6 +17,14 @@ namespace HealthTrackr_Api.Repository
 
 		public async Task<bool> UserLogin(LoginModel login)
 		{
+			//var myPasswordHasher = new ApplicationDbContext();
+			//string hashedPassword = myPasswordHasher.HashPassword("mySecurePassword");
+
+
+			//bool isVerified = myPasswordHasher.VerifyPassword(hashedPassword, "mySecurePassword");
+
+
+
 			return true;
 		}
 
