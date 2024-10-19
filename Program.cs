@@ -1,17 +1,15 @@
 using HealthTrackr_Api.Data;
 using HealthTrackr_Api.Repository;
 using HealthTrackr_Api.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.FeatureManagement;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHttpClient();
-
-// TODO: CLEAN UP THE MODELS
-// MIGRATION COMMANDS
-// dotnet ef migrations add Initial
-// dotnet ef database update
 
 // Add services to the container.
 builder.Configuration.AddAzureAppConfiguration(options =>
@@ -27,12 +25,28 @@ builder.Configuration.AddAzureAppConfiguration(options =>
 });
 
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddAuthorization(opts =>
+{
+    opts.FallbackPolicy = new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build();
+});
+
+builder.Services.AddAuthentication("Bearer").AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateIssuerSigningKey = true,
+        ValidateLifetime = true,
+        ValidIssuer = builder.Configuration.GetValue<string>("Authentication:Issuer"),
+        ValidAudience = builder.Configuration.GetValue<string>("Authentication:Audience"),
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration.GetValue<string>("Authentication:SecretKey")))
+    };
+});
 
 // Repositories
-builder.Services.AddScoped<LoginAccess>();
 builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<AccessRepository>();
 
@@ -41,11 +55,7 @@ builder.Services.AddScoped<UserServices>();
 
 // Database
 builder.Services.AddDbContextFactory<DataContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DB_KEVINS")));
-//builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseInMemoryDatabase("AppDb"));
 builder.Services.AddAuthorization();
-
-// Add Identity
-//builder.Services.AddIdentityApiEndpoints<IdentityUser>().AddEntityFrameworkStores<ApplicationDbContext>();
 
 // Bind configuration AppSettings section to the Settings object
 builder.Services.Configure<ApplicationSettings>(builder.Configuration.GetSection("ApplicationSettings"));
@@ -55,6 +65,7 @@ builder.Services.AddFeatureManagement(builder.Configuration.GetSection("FeatureM
 
 // Add Azure App Configuration middleware to the container of services.
 builder.Services.AddAzureAppConfiguration();
+builder.Services.AddFeatureManagement();
 
 var app = builder.Build();
 
@@ -68,10 +79,9 @@ if (app.Environment.IsDevelopment())
 // Use Azure App Configuration middleware for dynamic configuration refresh.
 app.UseAzureAppConfiguration();
 
-//app.MapIdentityApi<IdentityUser>();
-
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

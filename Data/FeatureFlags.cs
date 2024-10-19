@@ -2,6 +2,6 @@
 {
     public enum FeatureFlags
     {
-        IsActive
+        ACTIVE
     }
 }

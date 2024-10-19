@@ -8,9 +8,9 @@ namespace HealthTrackr_Api.Services
 {
     public class UserServices
     {
-        private readonly ILogger<UserServices> logger;
-        private readonly UserRepository userRepository;
-        private readonly IFeatureManager featureManager;
+        private ILogger<UserServices> logger;
+        private UserRepository userRepository;
+        private IFeatureManager featureManager { get; set; }
         public ApplicationSettings settings { get; }
 
 
@@ -25,7 +25,7 @@ namespace HealthTrackr_Api.Services
         public async Task<User> GetUserInformation()
         {
             var key = settings.KEY;
-            var actite = await featureManager.IsEnabledAsync("IsActive");
+            var actite = await featureManager.IsEnabledAsync(nameof(FeatureFlags.ACTIVE));
             var user = new User();
             try
             {
