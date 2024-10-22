@@ -63,6 +63,13 @@ namespace HealthTrackr_Api.Repository
                     // TODO: Create password encryption
                     if (user.Password == login.Password)
                     {
+                        // log user login
+                        await _context.UserLogins.AddAsync(new UserLogins
+                        {
+                            UserId = user.UserId,
+                            LoginDate = DateTime.UtcNow
+                        });
+                        await _context.SaveChangesAsync();
                         return user;
                     }
                 }

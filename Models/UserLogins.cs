@@ -2,11 +2,13 @@
 
 namespace HealthTrackr_Api.Models
 {
-    public class UserLogin
+    public class UserLogins
     {
         [Key]
+        public long UserLoginId { get; set; }
+        [Required]
         public int UserId { get; set; }
-        public User? User { get; set; }
+        [Required]
         public DateTime LoginDate { get; set; }
     }
 }
