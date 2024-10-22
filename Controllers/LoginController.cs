@@ -38,7 +38,11 @@ namespace HealthTrackr_Api.Controllers
         public async Task<IActionResult> CreateAccount([FromBody] AccountModel account)
         {
             var user = await accessRepository.CreateUserAccount(account);
-            return Ok(user);
+            if (user)
+            {
+                return Ok("Account created successfully");
+            }
+            return BadRequest("Account creation failed");
         }
 
         [HttpPost]
@@ -48,7 +52,11 @@ namespace HealthTrackr_Api.Controllers
             try
             {
                 var result = await accessRepository.ChangePassword(login);
-                return Ok(result);
+                if (result)
+                {
+                    return Ok("Password changed");
+                }
+                return BadRequest("Password change failed");
             }
             catch (Exception)
             {

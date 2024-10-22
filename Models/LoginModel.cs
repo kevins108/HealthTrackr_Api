@@ -21,3 +21,15 @@ public class AccountModel
     [MaxLength(100)]
     public string? Email { get; set; }
 }
+
+public class ChangePasswordModel
+{
+    [MaxLength(100)]
+    public string? UserName { get; set; }
+    [MaxLength(100)]
+    public string? OldPassword { get; set; }
+    [MaxLength(100)]
+    public string? NewPassword { get; set; }
+    [MaxLength(100)]
+    public string? ConfirmNewPassword { get; set; }
+}
