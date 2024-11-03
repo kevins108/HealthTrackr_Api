@@ -6,37 +6,68 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace HealthTrackr_Api.Repository
 {
     public class AccessRepository
     {
-        private readonly DataContext context;
-        public ApplicationSettings settings { get; }
-        private readonly IConfiguration configuration;
+        private readonly DataContext _context;
+        public ApplicationSettings _settings { get; }
+        private readonly IConfiguration _configuration;
 
         public AccessRepository(DataContext context, IOptionsSnapshot<ApplicationSettings> settings, IConfiguration configuration)
         {
-            this.context = context;
-            this.settings = settings.Value;
-            this.configuration = configuration;
+            _context = context;
+            _settings = settings.Value;
+            _configuration = configuration;
         }
 
-        public async Task<bool> ChangePassword(LoginModel login)
+        public async Task<bool> ChangePassword(ChangePasswordModel login)
         {
-            return true;
+            try
+            {
+                var user = await _context.Users.FirstOrDefaultAsync(x => x.UserName == login.UserName);
+                if (user != null)
+                {
+                    // compare old password
+                    var decryptedPassword = DecryptUserPassword(login.OldPassword);
+                    if (ComparePasswords(user.Password, decryptedPassword))
+                    {
+                        // compare new password
+                        if (ComparePasswords(login.NewPassword, login.ConfirmNewPassword))
+                        {
+                            user.Password = EncryptUserPassword(login.NewPassword);
+                            await _context.SaveChangesAsync();
+                            return true;
+                        }
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+            return false;
         }
 
         public async Task<User?> ValidateCredentials(LoginModel login)
         {
             try
             {
-                var user = await context.Users.FirstOrDefaultAsync(x => x.UserName == login.UserName);
+                var user = await _context.Users.FirstOrDefaultAsync(x => x.UserName == login.UserName);
                 if (user != null)
                 {
                     // TODO: Create password encryption
                     if (user.Password == login.Password)
                     {
+                        // log user login
+                        await _context.UserLogins.AddAsync(new UserLogins
+                        {
+                            UserId = user.UserId,
+                            LoginDate = DateTime.UtcNow
+                        });
+                        await _context.SaveChangesAsync();
                         return user;
                     }
                 }
@@ -50,16 +81,16 @@ namespace HealthTrackr_Api.Repository
 
         public string GenerateToken(User user)
         {
-            var secretKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(configuration.GetValue<string>("Authentication:SecretKey")));
+            var secretKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(_configuration.GetValue<string>("Authentication:SecretKey")));
             var signinCredentials = new SigningCredentials(secretKey, SecurityAlgorithms.HmacSha256);
 
             List<Claim> claims = new();
             claims.Add(new(JwtRegisteredClaimNames.Sub, user.UserId.ToString()));
-            claims.Add(new(JwtRegisteredClaimNames.UniqueName, user.UserName));
+            claims.Add(new(JwtRegisteredClaimNames.UniqueName, user.UserName!));
 
             var token = new JwtSecurityToken(
-                issuer: configuration.GetValue<string>("Authentication:Issuer"),
-                audience: configuration.GetValue<string>("Authentication:Audience"),
+                issuer: _configuration.GetValue<string>("Authentication:Issuer"),
+                audience: _configuration.GetValue<string>("Authentication:Audience"),
                 claims: claims,
                 expires: DateTime.Now.AddMinutes(30),
                 signingCredentials: signinCredentials
@@ -68,38 +99,32 @@ namespace HealthTrackr_Api.Repository
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        public async Task<User> CreateUserAccount(AccountModel account)
+        public async Task<bool> CreateUserAccount(AccountModel account)
         {
             try
             {
-                var userExists = await context.Users.FirstOrDefaultAsync(x => x.UserName == account.UserName);
-                var emailExists = await context.Users.FirstOrDefaultAsync(x => x.EmailAddress == account.Email);
+                var userExists = await _context.Users.AnyAsync(x => x.UserName == account.UserName || x.EmailAddress == account.Email);
 
-                if (userExists != null)
+                if (userExists)
                 {
-                    throw new Exception("User already exists");
-                }
-                else if (emailExists != null)
-                {
-                    throw new Exception("Email already exists");
+                    return false;
                 }
                 else
                 {
                     var user = new User
                     {
                         UserGuid = Guid.NewGuid(),
-                        FirstName = account.FirstName,
-                        LastName = account.LastName,
-                        UserName = account.UserName,
-                        // TODO: Create password encryption
-                        Password = account.Password,
-                        EmailAddress = account.Email,
+                        FirstName = account?.FirstName?.Trim(),
+                        LastName = account?.LastName?.Trim(),
+                        UserName = ValidateUserName(account?.UserName),
+                        Password = EncryptUserPassword(account?.Password),
+                        EmailAddress = ValidateUserEmailAddress(account?.Email),
                         CreateDate = DateTime.Now,
                         Active = true
                     };
-                    context.Users.Add(user);
-                    await context.SaveChangesAsync();
-                    return user;
+                    _context.Users.Add(user);
+                    await _context.SaveChangesAsync();
+                    return true;
                 }
             }
             catch (Exception)
@@ -108,5 +133,64 @@ namespace HealthTrackr_Api.Repository
             }
         }
 
+        private string ValidateUserEmailAddress(string? email)
+        {
+            if (!string.IsNullOrWhiteSpace(email))
+            {
+                email = email.Trim();
+            }
+            else
+            {
+                throw new ArgumentException("Email address cannot be empty.");
+            }
+
+            string emailPattern = @"^[^@\s]+@[^@\s]+\.[^@\s]+$";
+            if (Regex.IsMatch(email, emailPattern))
+            {
+                return email;
+            }
+            else
+            {
+                throw new ArgumentException("Invalid email address format.");
+            }
+        }
+
+        private string ValidateUserName(string? userName)
+        {
+            // already checked if in use, maybe do some cleanup? Trims and lengths?
+            return userName ?? string.Empty;
+        }
+
+        private string EncryptUserPassword(string? password)
+        {
+            if (password != null)
+            {
+                // Check if password meets the basic requirements
+                if (password.Length >= 8 && password.Any(char.IsUpper) && password.Any(char.IsDigit))
+                {
+                    // TODO: Encrypt password
+                    return "";
+                }
+            }
+            return string.Empty;
+        }
+
+        private string DecryptUserPassword(string? oldPassword)
+        {
+            // TODO: Create decrypt password
+            return oldPassword ?? string.Empty;
+        }
+
+        private bool ComparePasswords(string? password, string? confirmPassword)
+        {
+            if (!string.IsNullOrEmpty(password) && !string.IsNullOrEmpty(confirmPassword))
+            {
+                if (password.Equals(confirmPassword, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 }

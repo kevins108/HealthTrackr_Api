@@ -8,6 +8,9 @@ namespace HealthTrackr_Api.Data
         public DataContext(DbContextOptions<DataContext> options) : base(options) { }
 
         public virtual DbSet<User> Users { get; set; }
+        public virtual DbSet<UserLogins> UserLogins { get; set; }
+        public virtual DbSet<ActivityRecords> ActivityRecords { get; set; }
+        public virtual DbSet<ActivityTypes> ActivityTypes { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

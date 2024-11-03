@@ -1,21 +1,25 @@
+using Asp.Versioning;
 using HealthTrackr_Api.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HealthTrackr_Api.Controllers
 {
+    [ApiVersion(1)]
     [ApiController]
-    [Route("/api/user")]
+    [Route("/api/v{v:apiVersion}/user")]
+
     public class UserController : ControllerBase
     {
-        private readonly ILogger<UserController> logger;
-        private readonly UserServices userServices;
+        private readonly ILogger<UserController> _logger;
+        private readonly UserServices _userServices;
 
         public UserController(ILogger<UserController> logger, UserServices userServices)
         {
-            this.logger = logger;
-            this.userServices = userServices;
+            _logger = logger;
+            _userServices = userServices;
         }
 
+        [MapToApiVersion(1)]
         [HttpGet]
         [Route("getUser")]
         //[FeatureGate("IsActive")]
@@ -23,8 +27,7 @@ namespace HealthTrackr_Api.Controllers
         {
             try
             {
-                var access = Request.Headers["Authorization"];
-                var result = await userServices.GetUserInformation();
+                var result = await _userServices.GetUserInformation();
                 return Ok(result);
             }
             catch (Exception)

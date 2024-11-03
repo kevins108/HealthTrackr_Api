@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using HealthTrackr_Api.Data;
 using HealthTrackr_Api.Repository;
 using HealthTrackr_Api.Services;
@@ -12,9 +13,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddHttpClient();
 
 // Add services to the container.
-builder.Configuration.AddAzureAppConfiguration(options =>
+builder.Configuration.AddAzureAppConfiguration(opts =>
 {
-    options.Connect(builder.Configuration["AZURE_APP_CONFIGURATION"])
+    opts.Connect(builder.Configuration["AZURE_APP_CONFIGURATION"])
            .Select("*")
            .ConfigureRefresh(refresh =>
            {
@@ -32,9 +33,9 @@ builder.Services.AddAuthorization(opts =>
     opts.FallbackPolicy = new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build();
 });
 
-builder.Services.AddAuthentication("Bearer").AddJwtBearer(options =>
+builder.Services.AddAuthentication("Bearer").AddJwtBearer(opts =>
 {
-    options.TokenValidationParameters = new TokenValidationParameters
+    opts.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
         ValidateAudience = true,
@@ -54,7 +55,7 @@ builder.Services.AddScoped<AccessRepository>();
 builder.Services.AddScoped<UserServices>();
 
 // Database
-builder.Services.AddDbContextFactory<DataContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DB_KEVINS")));
+builder.Services.AddDbContextFactory<DataContext>(opts => opts.UseSqlServer(builder.Configuration.GetConnectionString("DB_KEVINS")));
 builder.Services.AddAuthorization();
 
 // Bind configuration AppSettings section to the Settings object
@@ -66,6 +67,21 @@ builder.Services.AddFeatureManagement(builder.Configuration.GetSection("FeatureM
 // Add Azure App Configuration middleware to the container of services.
 builder.Services.AddAzureAppConfiguration();
 builder.Services.AddFeatureManagement();
+
+// Add versioning to the API
+builder.Services.AddApiVersioning(opts =>
+{
+    opts.ReportApiVersions = true;
+    opts.AssumeDefaultVersionWhenUnspecified = true;
+    opts.DefaultApiVersion = new ApiVersion(1, 0);
+})
+.AddMvc()
+.AddApiExplorer(opts =>
+{
+    opts.GroupNameFormat = "'v'VVV";
+    opts.SubstituteApiVersionInUrl = true;
+});
+
 
 var app = builder.Build();
 

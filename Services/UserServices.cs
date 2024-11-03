@@ -8,28 +8,28 @@ namespace HealthTrackr_Api.Services
 {
     public class UserServices
     {
-        private ILogger<UserServices> logger;
-        private UserRepository userRepository;
-        private IFeatureManager featureManager { get; set; }
-        public ApplicationSettings settings { get; }
+        private ILogger<UserServices> _logger;
+        private UserRepository _userRepository;
+        private IFeatureManager _featureManager { get; set; }
+        public ApplicationSettings _settings { get; }
 
 
         public UserServices(ILogger<UserServices> logger, UserRepository userRepository, IOptionsSnapshot<ApplicationSettings> settings, IFeatureManager featureManager)
         {
-            this.logger = logger;
-            this.userRepository = userRepository;
-            this.settings = settings.Value;
-            this.featureManager = featureManager;
+            _logger = logger;
+            _userRepository = userRepository;
+            _settings = settings.Value;
+            _featureManager = featureManager;
         }
 
         public async Task<User> GetUserInformation()
         {
-            var key = settings.KEY;
-            var actite = await featureManager.IsEnabledAsync(nameof(FeatureFlags.ACTIVE));
+            //var key = _settings.KEY;
+            var actite = await _featureManager.IsEnabledAsync(nameof(FeatureFlags.ACTIVE));
             var user = new User();
             try
             {
-                var newUser = await userRepository.GetUser();
+                var newUser = await _userRepository.GetUser();
             }
             catch (Exception)
             {
