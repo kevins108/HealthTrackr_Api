@@ -9,6 +9,8 @@ namespace HealthTrackr_Api.Data
 
         public virtual DbSet<User> Users { get; set; }
         public virtual DbSet<UserLogins> UserLogins { get; set; }
+        public virtual DbSet<ActivityRecords> ActivityRecords { get; set; }
+        public virtual DbSet<ActivityTypes> ActivityTypes { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

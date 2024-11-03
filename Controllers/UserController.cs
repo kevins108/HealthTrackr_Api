@@ -1,10 +1,13 @@
+using Asp.Versioning;
 using HealthTrackr_Api.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HealthTrackr_Api.Controllers
 {
+    [ApiVersion(1)]
     [ApiController]
-    [Route("/api/user")]
+    [Route("/api/v{v:apiVersion}/user")]
+
     public class UserController : ControllerBase
     {
         private readonly ILogger<UserController> _logger;
@@ -16,6 +19,7 @@ namespace HealthTrackr_Api.Controllers
             _userServices = userServices;
         }
 
+        [MapToApiVersion(1)]
         [HttpGet]
         [Route("getUser")]
         //[FeatureGate("IsActive")]

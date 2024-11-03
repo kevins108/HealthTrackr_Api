@@ -51,8 +51,6 @@ namespace HealthTrackr_Api.Repository
             return false;
         }
 
-
-
         public async Task<User?> ValidateCredentials(LoginModel login)
         {
             try
@@ -88,7 +86,7 @@ namespace HealthTrackr_Api.Repository
 
             List<Claim> claims = new();
             claims.Add(new(JwtRegisteredClaimNames.Sub, user.UserId.ToString()));
-            claims.Add(new(JwtRegisteredClaimNames.UniqueName, user.UserName));
+            claims.Add(new(JwtRegisteredClaimNames.UniqueName, user.UserName!));
 
             var token = new JwtSecurityToken(
                 issuer: _configuration.GetValue<string>("Authentication:Issuer"),
@@ -160,7 +158,7 @@ namespace HealthTrackr_Api.Repository
         private string ValidateUserName(string? userName)
         {
             // already checked if in use, maybe do some cleanup? Trims and lengths?
-            return userName;
+            return userName ?? string.Empty;
         }
 
         private string EncryptUserPassword(string? password)
@@ -185,7 +183,7 @@ namespace HealthTrackr_Api.Repository
 
         private bool ComparePasswords(string? password, string? confirmPassword)
         {
-            if (!string.IsNullOrEmpty(password) || !string.IsNullOrEmpty(confirmPassword))
+            if (!string.IsNullOrEmpty(password) && !string.IsNullOrEmpty(confirmPassword))
             {
                 if (password.Equals(confirmPassword, StringComparison.InvariantCultureIgnoreCase))
                 {

@@ -1,12 +1,15 @@
-﻿using HealthTrackr_Api.Models;
+﻿using Asp.Versioning;
+using HealthTrackr_Api.Models;
 using HealthTrackr_Api.Repository;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HealthTrackr_Api.Controllers
 {
+    [ApiVersion(1)]
     [ApiController]
-    [Route("/api")]
+    [Route("/api/v{v:apiVersion}/")]
+
     public class LoginController : ControllerBase
     {
         private readonly ILogger<LoginController> logger;
@@ -18,6 +21,7 @@ namespace HealthTrackr_Api.Controllers
             this.accessRepository = accessRepository;
         }
 
+        [MapToApiVersion(1)]
         [HttpPost]
         [Route("login")]
         [AllowAnonymous]
@@ -32,6 +36,7 @@ namespace HealthTrackr_Api.Controllers
             return Ok(token);
         }
 
+        [MapToApiVersion(1)]
         [HttpPost]
         [Route("createaccount")]
         [AllowAnonymous]
@@ -45,6 +50,7 @@ namespace HealthTrackr_Api.Controllers
             return BadRequest("Account creation failed");
         }
 
+        [MapToApiVersion(1)]
         [HttpPost]
         [Route("changepassword")]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordModel login)

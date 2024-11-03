@@ -20,7 +20,39 @@ namespace HealthTrackr_Api.Repository
 
         public async Task<User?> GetUser()
         {
-            return await _context.Users.Where(u => u.UserId > 0).FirstOrDefaultAsync();
+            try
+            {
+                return await _context.Users.Where(u => u.UserId > 0).FirstOrDefaultAsync();
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
+
+        public async Task<object?> GetUserActivities(int userId)
+        {
+            try
+            {
+                var activity = await _context.ActivityRecords.Where(ar => ar.UserId == userId)
+                .Join(_context.ActivityTypes,
+                      ar => ar.ActivityTypeId,
+                      at => at.ActivityTypeId,
+                      (ar, at) => new
+                      {
+                          ar.ActivityRecordId,
+                          ar.ActivityTypeId,
+                          ar.ActivityDate
+                      })
+                .ToListAsync();
+
+                return activity;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
     }
 }
