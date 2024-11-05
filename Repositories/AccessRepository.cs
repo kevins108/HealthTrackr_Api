@@ -1,5 +1,6 @@
 ﻿using HealthTrackr_Api.Data;
 using HealthTrackr_Api.Models;
+using HealthTrackr_Api.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -15,24 +16,26 @@ namespace HealthTrackr_Api.Repository
         private readonly DataContext _context;
         public ApplicationSettings _settings { get; }
         private readonly IConfiguration _configuration;
+        private readonly UserLoginAccess _userLoginAccess;
 
-        public AccessRepository(DataContext context, IOptionsSnapshot<ApplicationSettings> settings, IConfiguration configuration)
+        public AccessRepository(DataContext context, IOptionsSnapshot<ApplicationSettings> settings, IConfiguration configuration, UserLoginAccess userLoginAccess)
         {
             _context = context;
             _settings = settings.Value;
             _configuration = configuration;
+            _userLoginAccess = userLoginAccess;
         }
 
         public async Task<bool> ChangePassword(ChangePasswordModel login)
         {
             try
             {
-                var user = await _context.Users.FirstOrDefaultAsync(x => x.UserName == login.UserName);
+                var user = await _context.Users.FirstOrDefaultAsync(x => x.EmailAddress == login.EmailAddress);
                 if (user != null)
                 {
                     // compare old password
-                    var decryptedPassword = DecryptUserPassword(login.OldPassword);
-                    if (ComparePasswords(user.Password, decryptedPassword))
+                    var decryptedPassword = _userLoginAccess.Decrypt(user.Password);
+                    if (ComparePasswords(login.OldPassword, decryptedPassword))
                     {
                         // compare new password
                         if (ComparePasswords(login.NewPassword, login.ConfirmNewPassword))
@@ -55,11 +58,11 @@ namespace HealthTrackr_Api.Repository
         {
             try
             {
-                var user = await _context.Users.FirstOrDefaultAsync(x => x.UserName == login.UserName);
-                if (user != null)
+                var user = await _context.Users.FirstOrDefaultAsync(x => x.EmailAddress == login.EmailAddress);
+                if (user != null && !string.IsNullOrEmpty(user.Password))
                 {
-                    // TODO: Create password encryption
-                    if (user.Password == login.Password)
+                    var decryptedPassword = _userLoginAccess.Decrypt(user.Password);
+                    if (ComparePasswords(login.Password, decryptedPassword))
                     {
                         // log user login
                         await _context.UserLogins.AddAsync(new UserLogins
@@ -86,7 +89,7 @@ namespace HealthTrackr_Api.Repository
 
             List<Claim> claims = new();
             claims.Add(new(JwtRegisteredClaimNames.Sub, user.UserId.ToString()));
-            claims.Add(new(JwtRegisteredClaimNames.UniqueName, user.UserName!));
+            claims.Add(new(JwtRegisteredClaimNames.UniqueName, user.EmailAddress!));
 
             var token = new JwtSecurityToken(
                 issuer: _configuration.GetValue<string>("Authentication:Issuer"),
@@ -103,7 +106,7 @@ namespace HealthTrackr_Api.Repository
         {
             try
             {
-                var userExists = await _context.Users.AnyAsync(x => x.UserName == account.UserName || x.EmailAddress == account.Email);
+                var userExists = await _context.Users.AnyAsync(x => x.EmailAddress == account.Email);
 
                 if (userExists)
                 {
@@ -116,7 +119,6 @@ namespace HealthTrackr_Api.Repository
                         UserGuid = Guid.NewGuid(),
                         FirstName = account?.FirstName?.Trim(),
                         LastName = account?.LastName?.Trim(),
-                        UserName = ValidateUserName(account?.UserName),
                         Password = EncryptUserPassword(account?.Password),
                         EmailAddress = ValidateUserEmailAddress(account?.Email),
                         CreateDate = DateTime.Now,
@@ -155,30 +157,21 @@ namespace HealthTrackr_Api.Repository
             }
         }
 
-        private string ValidateUserName(string? userName)
-        {
-            // already checked if in use, maybe do some cleanup? Trims and lengths?
-            return userName ?? string.Empty;
-        }
-
         private string EncryptUserPassword(string? password)
         {
-            if (password != null)
+            if (!string.IsNullOrEmpty(password))
             {
                 // Check if password meets the basic requirements
                 if (password.Length >= 8 && password.Any(char.IsUpper) && password.Any(char.IsDigit))
                 {
-                    // TODO: Encrypt password
-                    return "";
+                    return _userLoginAccess.Encrypt(password);
+                }
+                else
+                {
+                    throw new ArgumentException("Password doesn't meet the requirements");
                 }
             }
             return string.Empty;
-        }
-
-        private string DecryptUserPassword(string? oldPassword)
-        {
-            // TODO: Create decrypt password
-            return oldPassword ?? string.Empty;
         }
 
         private bool ComparePasswords(string? password, string? confirmPassword)

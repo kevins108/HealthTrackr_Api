@@ -53,6 +53,7 @@ namespace HealthTrackr_Api.Controllers
         [MapToApiVersion(1)]
         [HttpPost]
         [Route("changepassword")]
+        [AllowAnonymous]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordModel login)
         {
             try
