@@ -48,11 +48,12 @@ builder.Services.AddAuthentication("Bearer").AddJwtBearer(opts =>
 });
 
 // Repositories
-builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<AccessRepository>();
+builder.Services.AddScoped<UserRepository>();
 
 // Services
 builder.Services.AddScoped<UserServices>();
+builder.Services.AddScoped<UserLoginAccess>();
 
 // Database
 builder.Services.AddDbContextFactory<DataContext>(opts => opts.UseSqlServer(builder.Configuration.GetConnectionString("DB_KEVINS")));
